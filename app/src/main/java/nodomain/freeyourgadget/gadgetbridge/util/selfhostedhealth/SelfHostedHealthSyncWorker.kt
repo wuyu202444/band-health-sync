@@ -106,6 +106,10 @@ class SelfHostedHealthSyncWorker(
             val windowStart = windowStart(prefs, cursor, now, zone)
             val hrvHistoryKey = "selfhosted_sleep_hrv_history_" + address
             var hrvReadSucceeded = false
+            val runningEnabled = prefs.getBoolean(GBPrefs.SELF_HOSTED_HEALTH_WORKOUTS_ENABLED, false) &&
+                prefs.getBoolean(GBPrefs.SELF_HOSTED_HEALTH_RUNNING_DETAILS_ENABLED, false)
+            val runningHistoryKey = "selfhosted_running_history_v1_${SelfHostedRunningDetails.hash(url)}_$address"
+            var runningPending: SelfHostedRunningDetails.Pending? = null
 
             // Reading and packaging share one guard: neither should be able to throw past doWork,
             // or WorkManager records a bare failure and this screen keeps showing the stale status.
@@ -114,10 +118,22 @@ class SelfHostedHealthSyncWorker(
             try {
                 samples = readSamples(device, windowStart, now)
                 val legacy = SelfHostedHealthPayload.build(samples, zone, sleepCursor, now)
-                val withWorkouts = SelfHostedWorkoutSync.attach(
-                    legacy, { SelfHostedWorkoutReader.read(device, windowStart, now) }, zone, now,
+                val workoutFrom = if (runningEnabled && !prefs.getBoolean(runningHistoryKey, false))
+                    maxOf(prefs.getLong(GBPrefs.SELF_HOSTED_HEALTH_INITIAL_SYNC_TS, 0L), now - MAX_WINDOW_SECONDS)
+                    else windowStart
+                val workoutSummaries = SelfHostedWorkoutSync.attach(
+                    legacy, { SelfHostedWorkoutReader.read(device, workoutFrom, now) }, zone, now,
                     prefs.getBoolean(GBPrefs.SELF_HOSTED_HEALTH_WORKOUTS_ENABLED, false)
                 )
+                val withWorkouts = if (runningEnabled) {
+                    try {
+                        runningPending = SelfHostedRunningDetails.attach(workoutSummaries, device, url) { prefs.getString(it, null) }
+                        runningPending!!.payload
+                    } catch (e: Exception) {
+                        LOG.warn("Running details unavailable ({}); retaining summaries", e.javaClass.simpleName)
+                        workoutSummaries
+                    }
+                } else workoutSummaries
                 payload = try {
                     // Backfill existing nightly statistics once, independently of the sleep cursor.
                     val from = if (prefs.getBoolean(hrvHistoryKey, false)) windowStart
@@ -167,6 +183,10 @@ class SelfHostedHealthSyncWorker(
                 val editor = GBApplication.getPrefs().preferences.edit()
                 editor.putLong(cursorKey(address), now)
                 if (hrvReadSucceeded) editor.putBoolean(hrvHistoryKey, true)
+                runningPending?.let { pending ->
+                    pending.hashes.forEach { (key, digest) -> editor.putString(key, digest) }
+                    if (pending.complete) editor.putBoolean(runningHistoryKey, true)
+                }
                 if (payload.sleepUploadedThrough > sleepCursor) {
                     editor.putLong(sleepCursorKey(address), payload.sleepUploadedThrough)
                 }

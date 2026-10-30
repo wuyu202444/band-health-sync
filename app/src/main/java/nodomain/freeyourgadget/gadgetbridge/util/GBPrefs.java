@@ -134,6 +134,7 @@ public class GBPrefs extends Prefs {
     // so neither Health Connect nor a third-party webhook app is needed for that destination.
     public static final String SELF_HOSTED_HEALTH_ENABLED = "selfhosted_health_enabled";
     public static final String SELF_HOSTED_HEALTH_WORKOUTS_ENABLED = "selfhosted_health_workouts_enabled";
+    public static final String SELF_HOSTED_HEALTH_RUNNING_DETAILS_ENABLED = "selfhosted_health_running_details_enabled";
     public static final String SELF_HOSTED_HEALTH_URL = "selfhosted_health_url";
     public static final String SELF_HOSTED_HEALTH_TOKEN = "selfhosted_health_token";
     public static final String SELF_HOSTED_HEALTH_DEVICE_SELECTION = "selfhosted_health_devices_multiselect";

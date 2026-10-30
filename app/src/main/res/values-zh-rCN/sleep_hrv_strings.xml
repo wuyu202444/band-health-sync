@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="pref_running_details_title">上传跑步完整指标</string>
+    <string name="pref_running_details_summary">上传已记录的指标、曲线、分段配速和恢复心率，不含 GPS 坐标；未变化的明细不会重复上传。</string>
     <string name="hrv_sleep_average">睡眠平均 HRV</string>
     <string name="hrv_sleep_summary_notice">显示按醒来日期归属的睡眠平均 HRV 和手环基线。这些是每晚汇总；没有分时明细、5 分钟最高值或恢复状态。</string>
 </resources>
