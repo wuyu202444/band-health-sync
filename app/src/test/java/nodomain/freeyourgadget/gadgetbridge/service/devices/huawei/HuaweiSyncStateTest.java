@@ -7,6 +7,16 @@ import static org.junit.Assert.assertTrue;
 
 public class HuaweiSyncStateTest {
     @Test
+    public void repeatedWorkoutChecksDoNotCreateAQueueBacklog() {
+        final HuaweiSyncState state = new HuaweiSyncState(null);
+        state.addWorkoutSyncToQueue();
+        state.addWorkoutSyncToQueue();
+        org.junit.Assert.assertEquals(nodomain.freeyourgadget.gadgetbridge.model.RecordedDataTypes.TYPE_GPS_TRACKS, state.getCurrentSyncType());
+        assertTrue(state.startHeartRateSync());
+        assertFalse(state.startWorkoutSync());
+    }
+
+    @Test
     public void fullActivitySyncBlocksBackgroundHeartRateSync() {
         final HuaweiSyncState syncState = new HuaweiSyncState(null);
 

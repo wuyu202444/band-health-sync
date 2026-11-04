@@ -4898,4 +4898,7 @@
 
     <string name="activity_summary_set_header_photo_title">设置页眉照片</string>
     <string name="activity_summary_remove_header_photo_title">移除页眉照片</string>
+    <string name="selfhosted_health_workouts_incomplete">运动摘要或跑步明细准备不完整，普通数据仍可能上传；将重试，请查看应用日志</string>
+    <string name="selfhosted_health_workout_counts">本次服务器接收：运动摘要 %1$d 条，跑步明细 %2$d 条。未变化的明细不重复上传，明细需开启完整指标开关。</string>
+    <string name="selfhosted_health_last_complete_success">最近一次上传无已报告错误：%1$s</string>
 </resources>

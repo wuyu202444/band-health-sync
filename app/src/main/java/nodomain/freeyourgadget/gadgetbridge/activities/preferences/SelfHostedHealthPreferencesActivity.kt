@@ -231,7 +231,8 @@ class SelfHostedHealthPreferencesActivity : AbstractSettingsActivityV2() {
         private fun updateStatusSummary() {
             val status = GBApplication.getPrefs().getString(GBPrefs.SELF_HOSTED_HEALTH_STATUS, "").orEmpty()
             findPreference<Preference>(GBPrefs.SELF_HOSTED_HEALTH_STATUS)?.let { preference ->
-                preference.summary = status
+                val lastSuccess = GBApplication.getPrefs().getString("selfhosted_health_last_complete_success", "").orEmpty()
+                preference.summary = status + if (lastSuccess.isNotEmpty()) "\n" + getString(R.string.selfhosted_health_last_complete_success, lastSuccess) else ""
                 preference.isVisible = status.isNotEmpty()
             }
         }

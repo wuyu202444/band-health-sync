@@ -5342,4 +5342,7 @@
     <string name="cycle_last_start_notice">Last start is the most recent first day of your period that you confirmed. The app predicts the next start date from your cycle length and updates it to an estimated date when it arrives. Tap “My period started” to calibrate it.</string>
     <string name="cycle_pending_clear_title">Server copy not deleted yet</string>
     <string name="cycle_pending_clear_summary">The cycle data on this phone is already gone, but the deletion never reached your server. It will be retried automatically the next time the server is reachable. Check the server address and token if this stays here.</string>
+    <string name="selfhosted_health_workouts_incomplete">Workout summaries or running details could not be prepared; ordinary data may still upload. Will retry. See the app log.</string>
+    <string name="selfhosted_health_workout_counts">Server accepted this run: %1$d workout summaries, %2$d running details. Unchanged details are not resent; details require the running-details switch.</string>
+    <string name="selfhosted_health_last_complete_success">Last upload without a reported error: %1$s</string>
 </resources>

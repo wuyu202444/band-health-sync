@@ -94,6 +94,8 @@ class SelfHostedHealthSyncWorker(
         // One entry per posted day, written to the sync log in a single batch at the end.
         val logEntries = mutableListOf<SelfHostedHealthLogEntry>()
 
+        var uploadedWorkouts = 0
+        var uploadedDetails = 0
         var uploadedDays = 0
         var retryable = false
         var failure: String? = null
@@ -110,6 +112,7 @@ class SelfHostedHealthSyncWorker(
                 prefs.getBoolean(GBPrefs.SELF_HOSTED_HEALTH_RUNNING_DETAILS_ENABLED, false)
             val runningHistoryKey = "selfhosted_running_history_v1_${SelfHostedRunningDetails.hash(url)}_$address"
             var runningPending: SelfHostedRunningDetails.Pending? = null
+            var workoutReadFailed = false
 
             // Reading and packaging share one guard: neither should be able to throw past doWork,
             // or WorkManager records a bare failure and this screen keeps showing the stale status.
@@ -122,7 +125,10 @@ class SelfHostedHealthSyncWorker(
                     maxOf(prefs.getLong(GBPrefs.SELF_HOSTED_HEALTH_INITIAL_SYNC_TS, 0L), now - MAX_WINDOW_SECONDS)
                     else windowStart
                 val workoutSummaries = SelfHostedWorkoutSync.attach(
-                    legacy, { SelfHostedWorkoutReader.read(device, workoutFrom, now) }, zone, now,
+                    legacy, {
+                        try { SelfHostedWorkoutReader.read(device, workoutFrom, now) }
+                        catch (e: Exception) { workoutReadFailed = true; throw e }
+                    }, zone, now,
                     prefs.getBoolean(GBPrefs.SELF_HOSTED_HEALTH_WORKOUTS_ENABLED, false)
                 )
                 val withWorkouts = if (runningEnabled) {
@@ -153,6 +159,10 @@ class SelfHostedHealthSyncWorker(
                 continue
             }
 
+            if (workoutReadFailed || (runningEnabled && runningPending?.complete != true)) {
+                failure = applicationContext.getString(R.string.selfhosted_health_workouts_incomplete)
+                retryable = true
+            }
             LOG.info(
                 "Self-hosted health sync for {}: {} sample(s) from {} produced {} day payload(s)",
                 address, samples.size, Instant.ofEpochSecond(windowStart), payload.days.size
@@ -164,7 +174,14 @@ class SelfHostedHealthSyncWorker(
                 // Logged whether it succeeded or failed: the point of the log is to see the failures.
                 logEntries.add(logEntry(day, deviceName, url, manual, result))
                 when (result) {
-                    is SelfHostedHealthUploadResult.Success -> uploadedDays++
+                    is SelfHostedHealthUploadResult.Success -> {
+                        uploadedDays++
+                        val workouts = day.body.optJSONArray("workouts")
+                        uploadedWorkouts += workouts?.length() ?: 0
+                        if (workouts != null) for (i in 0 until workouts.length()) {
+                            if (workouts.getJSONObject(i).has("details")) uploadedDetails++
+                        }
+                    }
                     is SelfHostedHealthUploadResult.Failure -> {
                         LOG.warn("Upload of {} failed: {}", day.date, result.message)
                         allSucceeded = false
@@ -197,17 +214,20 @@ class SelfHostedHealthSyncWorker(
         SelfHostedHealthLog.append(applicationContext, logEntries)
 
         val timestamp = TIME_FORMAT.format(ZonedDateTime.ofInstant(Instant.ofEpochSecond(now), zone))
+        val workoutStatus = if (prefs.getBoolean(GBPrefs.SELF_HOSTED_HEALTH_WORKOUTS_ENABLED, false))
+            "\n" + applicationContext.getString(R.string.selfhosted_health_workout_counts, uploadedWorkouts, uploadedDetails) else ""
         if (failure == null) {
+            prefs.preferences.edit().putString("selfhosted_health_last_complete_success", timestamp).apply()
             storeStatus(
                 applicationContext.getString(
                     R.string.selfhosted_health_status_success, timestamp, uploadedDays
-                )
+                ) + workoutStatus
             )
             return Result.success()
         }
 
         storeStatus(
-            applicationContext.getString(R.string.selfhosted_health_status_failed, timestamp, failure)
+            applicationContext.getString(R.string.selfhosted_health_status_failed, timestamp, failure) + workoutStatus
         )
         return if (retryable && runAttemptCount < MAX_ATTEMPTS) Result.retry() else Result.failure()
     }

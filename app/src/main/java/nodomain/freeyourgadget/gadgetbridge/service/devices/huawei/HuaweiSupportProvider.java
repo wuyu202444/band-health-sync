@@ -241,6 +241,7 @@ import nodomain.freeyourgadget.gadgetbridge.service.devices.huawei.utils.HuaweiR
 import nodomain.freeyourgadget.gadgetbridge.service.serial.GBDeviceProtocol;
 import nodomain.freeyourgadget.gadgetbridge.util.DateTimeUtils;
 import nodomain.freeyourgadget.gadgetbridge.util.GB;
+import nodomain.freeyourgadget.gadgetbridge.util.GBPrefs;
 import nodomain.freeyourgadget.gadgetbridge.util.MediaManager;
 import nodomain.freeyourgadget.gadgetbridge.util.StringUtils;
 import nodomain.freeyourgadget.gadgetbridge.util.preferences.DevicePrefs;
@@ -277,6 +278,26 @@ public class HuaweiSupportProvider {
             },
             this::startBackgroundHeartRateSync
     );
+    // Reuse the serial timer; check opt-in on every tick, including changes made while connected.
+    private final HuaweiHeartRateSyncScheduler workoutSyncScheduler = new HuaweiHeartRateSyncScheduler(
+            new HuaweiHeartRateSyncScheduler.DelayedExecutor() {
+                @Override
+                public void postDelayed(Runnable runnable, long delayMillis) { handler.postDelayed(runnable, delayMillis); }
+                @Override
+                public void removeCallbacks(Runnable runnable) { handler.removeCallbacks(runnable); }
+            }, completion -> {
+                final GBPrefs prefs = GBApplication.getPrefs();
+                if (gbDevice != null && gbDevice.isInitialized() && !gbDevice.isBusy()
+                        && prefs.getBoolean(GBPrefs.SELF_HOSTED_HEALTH_ENABLED, false)
+                        && prefs.getBoolean(GBPrefs.SELF_HOSTED_HEALTH_WORKOUTS_ENABLED, false)
+                        && prefs.getStringSet(GBPrefs.SELF_HOSTED_HEALTH_DEVICE_SELECTION, java.util.Collections.emptySet()).contains(gbDevice.getAddress().toUpperCase(java.util.Locale.ROOT))) {
+                    LOG.info("Checking for new workout reports in background");
+                    this.syncState.addWorkoutSyncToQueue();
+                    fetchRecodedDataFromQueue();
+                }
+                // The sync queue owns the asynchronous work and deduplicates pending requests.
+                return false;
+            });
     private final Runnable batteryRunner = () -> {
         LOG.info("Running retrieving battery through runner.");
         getBatteryLevel();
@@ -2701,6 +2722,7 @@ public class HuaweiSupportProvider {
     }
 
     private void restartBackgroundHeartRateSync() {
+        workoutSyncScheduler.restart(15 * 60_000L);
         if (!getDeviceState().supportsHeartRate(gbDevice)) {
             heartRateSyncScheduler.stop();
             return;
@@ -2834,6 +2856,7 @@ public class HuaweiSupportProvider {
     public void dispose() {
         dismissActivePhoneAlarm("Huawei support disposed");
         heartRateSyncScheduler.stop();
+        workoutSyncScheduler.stop();
         stopBatteryRunnerDelayed();
         huaweiFileDownloadManager.dispose();
         huaweiP2PManager.unregisterAllService();

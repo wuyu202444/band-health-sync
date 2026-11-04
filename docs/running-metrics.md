@@ -72,3 +72,9 @@ Use the existing release-signing setup. After dependencies are cached, `--offlin
 avoids network version lookups during release checks. Tests use synthetic data.
 An optional `RUNNING_FIXTURE_PATH` enables local private-backup projection replay;
 its inputs and outputs belong under ignored `app/build`, never in version control.
+
+## Background report checks and upload status (.4)
+
+While connected, the app checks for new workout reports every 15 minutes when self-hosted upload and workout summaries are enabled and the device is selected. It uses the existing workout sync queue, skips busy/uninitialized devices, and stops the timer on disposal. This is polling, not an immediate workout-end notification. Existing data-finish broadcasts schedule server upload after report sync.
+
+The upload status reports acknowledged summary/detail counts for the current run; unchanged detail fingerprints are intentionally omitted. It retains the last upload time without a reported error. A failed workout read or incomplete running-detail preparation now reports a failure and requests a bounded retry even if ordinary day payloads succeeded. Device-side end-to-end behavior and battery impact require handset validation.
