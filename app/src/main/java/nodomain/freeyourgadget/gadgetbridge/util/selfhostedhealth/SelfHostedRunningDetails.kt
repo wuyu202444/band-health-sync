@@ -8,7 +8,6 @@ import org.json.JSONObject
 import org.slf4j.LoggerFactory
 import java.nio.charset.StandardCharsets
 import java.security.MessageDigest
-import java.time.Instant
 
 /** Read only explicit non-location columns. Missing measurements are never synthesized. */
 object SelfHostedRunningDetails {
@@ -76,8 +75,8 @@ object SelfHostedRunningDetails {
                         }
                         if (header == null) { complete = false; continue }
                         var summary = JSONObject()
-                        db.database.rawQuery("SELECT SUMMARY_DATA FROM BASE_ACTIVITY_SUMMARY WHERE DEVICE_ID=? AND START_TIME=?",
-                            arrayOf(selected.id.toString(), Instant.parse(workout.getString("start_time")).toEpochMilli().toString())).use { cursor ->
+                        db.database.rawQuery("SELECT b.SUMMARY_DATA FROM BASE_ACTIVITY_SUMMARY b JOIN HUAWEI_WORKOUT_SUMMARY_SAMPLE h ON b.DEVICE_ID=h.DEVICE_ID AND b.START_TIME=h.START_TIMESTAMP*1000 WHERE h.DEVICE_ID=? AND h.WORKOUT_ID=?",
+                            arrayOf(selected.id.toString(), id.toString())).use { cursor ->
                             if (cursor.moveToFirst() && !cursor.isNull(0)) summary = JSONObject(cursor.getString(0))
                         }
                         val details = project(header!!, summary,
