@@ -1548,6 +1548,7 @@ public class HuaweiSupportProvider {
         if (!syncState.startActivitySync())
             return;
         fetchActivityDataP2P();
+        downloadArrhythmiaDiagnosticData();
 
         int sleepStart = 0;
         int stepStart = 0;
@@ -2891,6 +2892,56 @@ public class HuaweiSupportProvider {
 
         huaweiFileDownloadManager.addToQueue(request, false);
 
+    }
+
+    /** Experimental read-only capture: result codes are deliberately not interpreted yet. */
+    private void downloadArrhythmiaDiagnosticData() {
+        if (!getDeviceState().supportsArrhythmia() || !GBApplication.getDeviceSpecificSharedPrefs(gbDevice.getAddress())
+                .getBoolean(HuaweiConstants.PREF_HUAWEI_ARRHYTHMIA_SWITCH, false)) return;
+        final int end = (int) (System.currentTimeMillis() / 1000L);
+        LOG.info("Arrhythmia capture requesting class 700004, last 7 days");
+        huaweiFileDownloadManager.addToQueue(HuaweiFileDownloadManager.FileRequest.sequenceDataFileRequest(
+                end - 7 * 86400, end, HuaweiDictTypes.ARRHYTHMIA_CLASS,
+                new HuaweiFileDownloadManager.FileDownloadCallback() {
+                    @Override
+                    public void downloadComplete(HuaweiFileDownloadManager.FileRequest request, @Nullable File localRawFile) {
+                        try {
+                            final byte[] raw = request.getData();
+                            if (raw == null || raw.length == 0 || raw.length > 1024 * 1024) {
+                                LOG.info("Arrhythmia capture empty or oversized: {}", raw == null ? 0 : raw.length);
+                                return;
+                            }
+                            final File target = new File(context.getFilesDir(), "huawei-arrhythmia-" + gbDevice.getAddress().replace(":", "") + ".bin");
+                            try (java.io.FileOutputStream output = new java.io.FileOutputStream(target)) { output.write(raw); }
+                            LOG.info("Arrhythmia capture saved bytes={}, headerHex={}", raw.length,
+                                    GB.hexdump(java.util.Arrays.copyOf(raw, Math.min(raw.length, 64))));
+                            final HuaweiSequenceDataFileParser.SequenceFileData parsed = HuaweiSequenceDataFileParser.parseSequenceFileData(raw);
+                            if (parsed == null || parsed.getDictId() != HuaweiDictTypes.ARRHYTHMIA_CLASS) {
+                                LOG.warn("Arrhythmia capture has no recognized sequence-file envelope");
+                                return;
+                            }
+                            LOG.info("Arrhythmia capture file bytes={}, records={}, version={}; result interpretation unavailable",
+                                    raw.length, parsed.getSequenceDataList().size(), parsed.getFileVersion());
+                            int count = 0;
+                            for (HuaweiSequenceDataFileParser.SequenceData record : parsed.getSequenceDataList()) {
+                                if (count++ >= 8) break;
+                                final byte[] summary = record.getSummary();
+                                final byte[] details = record.getDetails();
+                                LOG.info("Arrhythmia capture record start={}, end={}, version={}, summaryType={}, summaryHex={}, detailsBytes={}, detailsPreviewHex={}",
+                                        record.getStartTime(), record.getEndTime(), record.getDataVersion(), record.getSummaryType(),
+                                        summary == null ? "" : GB.hexdump(java.util.Arrays.copyOf(summary, Math.min(summary.length, 4096))),
+                                        details == null ? 0 : details.length,
+                                        details == null ? "" : GB.hexdump(java.util.Arrays.copyOf(details, Math.min(details.length, 128))));
+                            }
+                        } catch (Exception e) {
+                            LOG.warn("Arrhythmia capture failed ({})", e.getClass().getSimpleName());
+                        }
+                    }
+                    @Override
+                    public void downloadException(HuaweiFileDownloadManager.HuaweiFileDownloadException e) {
+                        LOG.warn("Arrhythmia capture download failed; ordinary health sync continues");
+                    }
+                }), false);
     }
 
     private boolean downloadDictTrueSleepData(int start, int end) {

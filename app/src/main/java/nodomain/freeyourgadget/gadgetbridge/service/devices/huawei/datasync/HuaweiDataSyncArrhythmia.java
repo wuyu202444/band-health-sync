@@ -78,7 +78,15 @@ public class HuaweiDataSyncArrhythmia implements HuaweiDataSyncCommon.DataCallba
 
     @Override
     public void onConfigCommand(HuaweiDataSyncCommon.ConfigCommandData data) {
-        LOG.info("Handle Arrhythmia command");
+        LOG.info("Arrhythmia control response code={}", data.getCode());
+        if (data.getConfigDataList() != null) for (HuaweiDataSyncCommon.ConfigData config : data.getConfigDataList()) {
+            if (config.configId >= 900300002 && config.configId <= 900300009) {
+                byte[] raw = config.configData;
+                LOG.info("Arrhythmia control response id={}, action={}, dataHex={}; not a decoded measurement result",
+                        config.configId, config.configAction, raw == null ? "" : nodomain.freeyourgadget.gadgetbridge.util.GB.hexdump(
+                                java.util.Arrays.copyOf(raw, Math.min(raw.length, 256))));
+            }
+        }
         //TODO:
     }
 
