@@ -4901,4 +4901,12 @@
     <string name="selfhosted_health_workouts_incomplete">运动摘要或跑步明细准备不完整，普通数据仍可能上传；将重试，请查看应用日志</string>
     <string name="selfhosted_health_workout_counts">本次服务器接收：运动摘要 %1$d 条，跑步明细 %2$d 条。未变化的明细不重复上传，明细需开启完整指标开关。</string>
     <string name="selfhosted_health_last_complete_success">最近一次上传无已报告错误：%1$s</string>
+    <string name="huawei_arrhythmia_records">检测记录</string>
+    <string name="huawei_arrhythmia_records_summary">查看已收到的手环记录；检测结论尚未解析</string>
+    <string name="huawei_arrhythmia_empty">暂未收到检测记录。请保持连接并刷新活动数据；没有记录不代表没有异常。</string>
+    <string name="huawei_arrhythmia_unresolved">结果待解析</string>
+    <string name="huawei_arrhythmia_detail">已收到手环记录，但字段含义尚未确认，暂不提供检测结论。\n\n设备原始字段：\n%1$s\n\n这些数字暂不解释为心率或正常、异常结论。</string>
+    <string name="huawei_arrhythmia_read_failed">心律失常记录读取失败，请查看应用日志；不能据此判断检测结果。</string>
+    <string name="selfhosted_arrhythmia_title">上传脉搏波心律失常记录</string>
+    <string name="selfhosted_arrhythmia_summary">上传测量时间和两个待解析的设备字段，不上传原始波形或诊断结论。</string>
 </resources>

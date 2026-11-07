@@ -5345,4 +5345,12 @@
     <string name="selfhosted_health_workouts_incomplete">Workout summaries or running details could not be prepared; ordinary data may still upload. Will retry. See the app log.</string>
     <string name="selfhosted_health_workout_counts">Server accepted this run: %1$d workout summaries, %2$d running details. Unchanged details are not resent; details require the running-details switch.</string>
     <string name="selfhosted_health_last_complete_success">Last upload without a reported error: %1$s</string>
+    <string name="huawei_arrhythmia_records">Measurement records</string>
+    <string name="huawei_arrhythmia_records_summary">Read captured device records; result meanings are not verified yet</string>
+    <string name="huawei_arrhythmia_empty">No captured records. Refresh activity data while connected. This does not mean no abnormality.</string>
+    <string name="huawei_arrhythmia_unresolved">Result not interpreted</string>
+    <string name="huawei_arrhythmia_detail">Device record received. Field meanings are not verified; no clinical conclusion is available.\n\nRaw device fields:\n%1$s\n\nThese are not interpreted as heart rate or a normal/abnormal result.</string>
+    <string name="huawei_arrhythmia_read_failed">Could not read arrhythmia records. See the app log; no result can be inferred.</string>
+    <string name="selfhosted_arrhythmia_title">Upload pulse-wave arrhythmia records</string>
+    <string name="selfhosted_arrhythmia_summary">Upload measurement times and two undecoded device fields. No waveform or diagnosis is uploaded.</string>
 </resources>

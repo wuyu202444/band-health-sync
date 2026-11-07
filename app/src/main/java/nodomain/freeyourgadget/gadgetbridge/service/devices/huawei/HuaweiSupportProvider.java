@@ -2920,6 +2920,8 @@ public class HuaweiSupportProvider {
                                 LOG.warn("Arrhythmia capture has no recognized sequence-file envelope");
                                 return;
                             }
+                            nodomain.freeyourgadget.gadgetbridge.util.selfhostedhealth.HuaweiArrhythmiaRecords.save(context, gbDevice.getAddress(), parsed);
+                            GB.signalActivityDataFinish(gbDevice);
                             LOG.info("Arrhythmia capture file bytes={}, records={}, version={}; result interpretation unavailable",
                                     raw.length, parsed.getSequenceDataList().size(), parsed.getFileVersion());
                             int count = 0;

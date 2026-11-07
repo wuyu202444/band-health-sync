@@ -147,6 +147,11 @@ public class HuaweiSettingsCustomizer implements DeviceSpecificSettingsCustomize
         handler.addPreferenceHandlerFor(PREF_HUAWEI_ARRHYTHMIA_SWITCH);
         handler.addPreferenceHandlerFor(PREF_HUAWEI_ARRHYTHMIA_AUTOMATIC);
         handler.addPreferenceHandlerFor(PREF_HUAWEI_ARRHYTHMIA_ALERT);
+        final Preference records = handler.findPreference("huawei_arrhythmia_records");
+        if (records != null) records.setOnPreferenceClickListener(preference -> {
+            nodomain.freeyourgadget.gadgetbridge.util.selfhostedhealth.HuaweiArrhythmiaRecords.show(handler.getContext(), handler.getDevice().getAddress());
+            return true;
+        });
 
         handler.addPreferenceHandlerFor(PREF_HUAWEI_ARTERIAL_STIFFNESS_DETECTION_SWITCH);
 

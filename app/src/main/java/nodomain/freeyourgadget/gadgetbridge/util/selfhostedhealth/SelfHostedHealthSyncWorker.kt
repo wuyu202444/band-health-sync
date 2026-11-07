@@ -140,17 +140,25 @@ class SelfHostedHealthSyncWorker(
                         workoutSummaries
                     }
                 } else workoutSummaries
+                val withArrhythmia = if (prefs.getBoolean("selfhosted_health_arrhythmia_enabled", false)) {
+                    try { HuaweiArrhythmiaRecords.attach(withWorkouts, HuaweiArrhythmiaRecords.read(applicationContext, address), zone, now) }
+                    catch (e: Exception) {
+                        failure = applicationContext.getString(R.string.huawei_arrhythmia_read_failed)
+                        retryable = true
+                        withWorkouts
+                    }
+                } else withWorkouts
                 payload = try {
                     // Backfill existing nightly statistics once, independently of the sleep cursor.
                     val from = if (prefs.getBoolean(hrvHistoryKey, false)) windowStart
                         else maxOf(prefs.getLong(GBPrefs.SELF_HOSTED_HEALTH_INITIAL_SYNC_TS, 0L), now - MAX_WINDOW_SECONDS)
                     val rows = SelfHostedSleepHrvPayload.read(device, from, now)
-                    val enriched = SelfHostedSleepHrvPayload.attach(withWorkouts, rows, zone, now)
+                    val enriched = SelfHostedSleepHrvPayload.attach(withArrhythmia, rows, zone, now)
                     hrvReadSucceeded = true
                     enriched
                 } catch (e: Exception) {
                     LOG.warn("Sleep HRV enrichment unavailable ({}); retaining existing payload", e.javaClass.simpleName)
-                    withWorkouts
+                    withArrhythmia
                 }
             } catch (e: Exception) {
                 LOG.error("Could not prepare self-hosted health payload for {}", address, e)
